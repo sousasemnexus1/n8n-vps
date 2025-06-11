@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  postgres:
+    image: 'postgres:15'
+    container_name: n8n-postgres
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: n8n123secure
+    volumes:
+      - 'postgres_data:/var/lib/postgresql/data'
+    restart: unless-stopped
+  n8n:
+    image: 'n8nio/n8n:latest'
+    container_name: n8n-app
+    ports:
+      - '5678:5678'
+    environment:
+      N8N_DATABASE_TYPE: postgresdb
+      N8N_DATABASE_HOST: postgres
+      N8N_DATABASE_PORT: 5432
+      N8N_DATABASE_NAME: n8n
+      N8N_DATABASE_USER: n8n
+      N8N_DATABASE_PASSWORD: n8n123secure
+      N8N_HOST: https://n8n.n8n-gigaaceleradora.com.br
+      N8N_PROTOCOL: https
+      N8N_EXECUTION_MODE: queue
+      WEBHOOK_URL: 'https://n8n.n8n-gigaaceleradora.com.br'
+    volumes:
+      - 'n8n_data:/home/node/.n8n'
+    depends_on:
+      - postgres
+    restart: unless-stopped
+volumes:
+  postgres_data: null
+  n8n_data: null
