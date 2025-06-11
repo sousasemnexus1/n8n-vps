@@ -1,6 +1,7 @@
 version: '3.8'
 services:
   postgres:
+    # Mantendo a v15 para ser compatível com seus dados existentes
     image: 'postgres:15'
     container_name: n8n-postgres
     environment:
@@ -10,12 +11,22 @@ services:
     volumes:
       - 'postgres_data:/var/lib/postgresql/data'
     restart: unless-stopped
+
+  # ADIÇÃO: Serviço Redis, necessário para o modo 'queue'
+  redis:
+    image: 'redis:7-alpine'
+    container_name: n8n-redis
+    restart: unless-stopped
+    volumes:
+      - 'redis_data:/data'
+
   n8n:
     image: 'n8nio/n8n:latest'
     container_name: n8n-app
     ports:
       - '5678:5678'
     environment:
+      # --- Configurações Básicas ---
       N8N_DATABASE_TYPE: postgresdb
       N8N_DATABASE_HOST: postgres
       N8N_DATABASE_PORT: 5432
@@ -24,13 +35,30 @@ services:
       N8N_DATABASE_PASSWORD: n8n123secure
       N8N_HOST: https://n8n.n8n-gigaaceleradora.com.br
       N8N_PROTOCOL: https
-      N8N_EXECUTION_MODE: queue
       WEBHOOK_URL: 'https://n8n.n8n-gigaaceleradora.com.br'
+      
+      # --- ADIÇÃO: Configuração do Modo Fila com Redis ---
+      N8N_EXECUTION_MODE: queue
+      N8N_QUEUE_BULL_REDIS_HOST: redis
+
+      # --- ADIÇÃO: Configuração do MCP Server (Solução Principal) ---
+      N8N_MCP_SERVER_ENABLED: 'true'
+      N8N_MCP_SERVER_PORT: '5679'
+      N8N_MCP_SERVER_URL: 'http://n8n:5679'
+
+      # --- ADIÇÃO: Variáveis de Compatibilidade (da sua pesquisa) ---
+      N8N_DISABLE_PRODUCTION_MAIN_PROCESS_RESPONSE_COMPRESSION: 'true'
+      N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE: 'true'
+
     volumes:
       - 'n8n_data:/home/node/.n8n'
     depends_on:
       - postgres
+      - redis # n8n agora depende do redis para iniciar
     restart: unless-stopped
+
 volumes:
   postgres_data: null
   n8n_data: null
+  # ADIÇÃO: Definir o volume do redis
+  redis_data: null
